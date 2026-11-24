@@ -1,0 +1,12 @@
+{
+  "name": "CS Empreiteira - Gestão de Ativos",
+  "short_name": "CS Ativos",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f6f8",
+  "theme_color": "#67b94a",
+  "lang": "pt-BR",
+  "description": "Gestão central de equipamentos, unidades, frentes e movimentações da CS Empreiteira",
+  "icons": [{"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
