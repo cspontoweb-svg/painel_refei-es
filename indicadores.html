@@ -1,12 +1,750 @@
-<!DOCTYPE html><html lang="pt-BR"><head><base target="_top"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CS | Dashboard</title><style>
-:root{--o:#f28c28;--line:#e5e7eb;--muted:#68707a}*{box-sizing:border-box}body{margin:0;background:#f4f6f8;font:15px Arial;color:#171717}header{background:#111;color:white;padding:19px 22px;border-bottom:5px solid var(--o)}main{max-width:1200px;margin:22px auto;padding:0 14px}.panel,.card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:17px}.filters,.cards,.charts{display:grid;gap:12px}.filters{grid-template-columns:repeat(4,1fr)}.cards{grid-template-columns:repeat(4,1fr);margin:14px 0}.charts{grid-template-columns:1fr 1fr}.card small{font-size:11px;color:var(--muted);font-weight:bold}.card strong{display:block;font-size:28px;margin-top:8px}label{display:block;font-weight:bold;font-size:12px;margin-bottom:7px}input,select{width:100%;padding:10px;border:1px solid #ccd1d7;border-radius:8px}button,a{display:inline-block;margin:10px 6px 0 0;padding:11px 14px;background:var(--o);color:#111;border:0;border-radius:8px;text-decoration:none;font-weight:bold;cursor:pointer}canvas{max-width:100%}.muted{font-size:12px;color:var(--muted)}@media(max-width:760px){.filters,.cards,.charts{grid-template-columns:1fr 1fr}}@media(max-width:500px){.filters,.cards,.charts{grid-template-columns:1fr}}</style></head><body><header><b>CS | DASHBOARD DE INDICADORES</b><div class="muted" style="color:#ddd">Painel de gestão operacional</div></header><main>
-<div class="panel"><div class="filters"><div><label>Data inicial</label><input type="date" id="ini"></div><div><label>Data final</label><input type="date" id="fim"></div><div><label>Obra</label><select id="obra"><option value="">Todas</option></select></div><div><label>Trecho</label><select id="trecho"><option value="">Todos</option></select></div></div><button id="apply">Aplicar filtros</button><a href="?page=admin" target="_top">Voltar ao ADMIN</a><div id="msg" class="muted"></div></div>
-<div class="cards"><div class="card"><small>APONTAMENTOS</small><strong id="total">0</strong></div><div class="card"><small>APROVADOS</small><strong id="approved">0</strong></div><div class="card"><small>RECUSADOS</small><strong id="denied">0</strong></div><div class="card"><small>VISITANTES</small><strong id="visitors">0</strong></div><div class="card"><small>COLABORADORES ATIVOS</small><strong id="active">0</strong></div><div class="card"><small>PENDENTES DE ENVIO</small><strong id="pending">0</strong></div></div>
-<div class="charts"><div class="panel"><h3>Apontamentos por refeição</h3><canvas id="mealChart"></canvas></div><div class="panel"><h3>Aprovados x recusados</h3><canvas id="statusChart"></canvas></div></div><div class="panel" style="margin-top:12px"><h3>Registros do período</h3><div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th>Data</th><th>Hora</th><th>Matrícula</th><th>Nome</th><th>Obra</th><th>Trecho</th><th>Refeição</th><th>Status</th><th>Motivo</th></tr></thead><tbody id="rows"></tbody></table></div></div>
-</main><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script>
-const $=id=>document.getElementById(id);let token=sessionStorage.getItem('cs_admin_token'),mealChart,statusChart;
-function call(fn,...a){return new Promise((res,rej)=>google.script.run.withSuccessHandler(res).withFailureHandler(e=>rej(e))[fn](...a))}
-async function init(){if(!token){$('msg').textContent='Acesse primeiro o ADMIN e autentique-se para consultar indicadores.';return}try{let b=await call('apiAdminBootstrap',token);$('obra').innerHTML+='<option>'+b.obras.map(x=>x[1]).join('</option><option>')+'</option>';$('trecho').innerHTML+='<option>'+b.frentes.map(x=>x[2]).join('</option><option>')+'</option>';load()}catch(e){$('msg').textContent=e.message}}
-async function load(){try{let d=await call('obterIndicadores',{inicio:$('ini').value,fim:$('fim').value,obra:$('obra').value,trecho:$('trecho').value},token);['total','approved','denied','visitors','active','pending'].forEach((k)=>$(k).textContent=d[k]);$('rows').innerHTML=d.records.map(r=>`<tr>${[r.data,r.hora,r.matricula,r.nome,r.obra,r.trecho,r.refeicao,r.status,r.motivo].map(x=>`<td>${x??''}</td>`).join('')}</tr>`).join('');if(mealChart)mealChart.destroy();if(statusChart)statusChart.destroy();if(window.Chart){mealChart=new Chart($('mealChart'),{type:'bar',data:{labels:Object.keys(d.byMeal),datasets:[{label:'Registros',data:Object.values(d.byMeal),backgroundColor:'#f28c28'}]}});statusChart=new Chart($('statusChart'),{type:'doughnut',data:{labels:['Aprovados','Recusados'],datasets:[{data:[d.approved,d.denied],backgroundColor:['#16834a','#c83c3c']}]}})}$('msg').textContent='Dados atualizados a partir da planilha.'}catch(e){$('msg').textContent=e.message}}
-$('apply').onclick=load;init();
-</script></body></html>
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#111111">
+  <title>CS | Dashboard</title>
+
+  <style>
+    :root {
+      --o: #f28c28;
+      --line: #e5e7eb;
+      --muted: #68707a;
+      --bg: #f4f6f8;
+      --green: #16834a;
+      --red: #c83c3c;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      font: 15px Arial, sans-serif;
+      color: #171717;
+    }
+
+    header {
+      background: #111;
+      color: white;
+      padding: 19px 22px;
+      border-bottom: 5px solid var(--o);
+    }
+
+    header b { font-size: 20px; }
+
+    main {
+      max-width: 1200px;
+      margin: 22px auto;
+      padding: 0 14px;
+    }
+
+    .panel, .card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      padding: 17px;
+    }
+
+    .filters, .cards, .charts {
+      display: grid;
+      gap: 12px;
+    }
+
+    .filters { grid-template-columns: repeat(4, 1fr); }
+
+    .cards {
+      grid-template-columns: repeat(3, 1fr);
+      margin: 14px 0;
+    }
+
+    .charts {
+      grid-template-columns: 1fr 1fr;
+      margin-bottom: 12px;
+    }
+
+    .card small {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: bold;
+    }
+
+    .card strong {
+      display: block;
+      font-size: 28px;
+      margin-top: 8px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      font-size: 12px;
+      margin-bottom: 7px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccd1d7;
+      border-radius: 8px;
+      background: white;
+      font-size: 14px;
+    }
+
+    button, a.action {
+      display: inline-block;
+      margin: 10px 6px 0 0;
+      padding: 11px 14px;
+      background: var(--o);
+      color: #111;
+      border: 0;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    button.secondary, a.secondary {
+      background: #222;
+      color: white;
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    canvas {
+      max-width: 100%;
+    }
+
+    .muted {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .status {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .status.error { color: var(--red); }
+    .status.success { color: var(--green); }
+
+    .tablewrap {
+      width: 100%;
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      min-width: 850px;
+    }
+
+    th, td {
+      padding: 9px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th { background: #f7f7f7; }
+
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .hidden { display: none !important; }
+
+    @media(max-width:760px) {
+      .filters { grid-template-columns: repeat(2, 1fr); }
+      .cards { grid-template-columns: repeat(2, 1fr); }
+      .charts { grid-template-columns: 1fr; }
+    }
+
+    @media(max-width:500px) {
+      .filters, .cards, .charts { grid-template-columns: 1fr; }
+      header { padding: 15px; }
+      main { margin-top: 14px; }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="topline">
+    <div>
+      <b>CS | DASHBOARD DE INDICADORES</b>
+      <div class="muted" style="color:#ddd">
+        Painel de gestão operacional
+      </div>
+    </div>
+
+    <a class="action secondary" href="?page=admin" target="_top">
+      Voltar ao ADMIN
+    </a>
+  </div>
+</header>
+
+<main>
+
+  <!-- FILTROS -->
+  <section class="panel">
+
+    <h2>Filtros do dashboard</h2>
+
+    <div class="filters">
+
+      <div>
+        <label for="ini">Data inicial</label>
+        <input type="date" id="ini">
+      </div>
+
+      <div>
+        <label for="fim">Data final</label>
+        <input type="date" id="fim">
+      </div>
+
+      <div>
+        <label for="obra">Obra</label>
+        <select id="obra">
+          <option value="">Todas</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="trecho">Trecho</label>
+        <select id="trecho">
+          <option value="">Todos</option>
+        </select>
+      </div>
+
+    </div>
+
+    <button id="apply">Aplicar filtros</button>
+    <button id="clear" class="secondary">Limpar filtros</button>
+
+    <div id="msg" class="status">
+      Verificando autenticação...
+    </div>
+
+  </section>
+
+  <!-- INDICADORES -->
+  <section class="cards">
+
+    <div class="card">
+      <small>APONTAMENTOS</small>
+      <strong id="total">0</strong>
+    </div>
+
+    <div class="card">
+      <small>APROVADOS</small>
+      <strong id="approved">0</strong>
+    </div>
+
+    <div class="card">
+      <small>RECUSADOS</small>
+      <strong id="denied">0</strong>
+    </div>
+
+    <div class="card">
+      <small>VISITANTES</small>
+      <strong id="visitors">0</strong>
+    </div>
+
+    <div class="card">
+      <small>COLABORADORES ATIVOS</small>
+      <strong id="active">0</strong>
+    </div>
+
+    <div class="card">
+      <small>PENDENTES DE ENVIO</small>
+      <strong id="pending">—</strong>
+    </div>
+
+  </section>
+
+  <!-- GRÁFICOS -->
+  <section class="charts">
+
+    <div class="panel">
+      <h3>Apontamentos por refeição</h3>
+      <canvas id="mealChart"></canvas>
+    </div>
+
+    <div class="panel">
+      <h3>Aprovados x recusados</h3>
+      <canvas id="statusChart"></canvas>
+    </div>
+
+  </section>
+
+  <!-- REGISTROS -->
+  <section class="panel">
+
+    <div class="topline">
+      <h3>Registros do período</h3>
+      <span class="muted" id="recordCount">0 registros</span>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Hora</th>
+            <th>Matrícula</th>
+            <th>Nome</th>
+            <th>Obra</th>
+            <th>Trecho</th>
+            <th>Refeição</th>
+            <th>Status</th>
+            <th>Motivo</th>
+          </tr>
+        </thead>
+
+        <tbody id="rows">
+          <tr>
+            <td colspan="9">Aguardando consulta.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+'use strict';
+
+const $ = id => document.getElementById(id);
+
+let token = sessionStorage.getItem('cs_admin_token') || '';
+let mealChart = null;
+let statusChart = null;
+let adminData = null;
+let carregando = false;
+
+/* =====================================================
+   COMUNICAÇÃO COM APPS SCRIPT
+===================================================== */
+
+function call(fn, ...args) {
+  return new Promise((resolve, reject) => {
+    try {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(error => {
+          reject(new Error(
+            error && error.message
+              ? error.message
+              : String(error || 'Erro de comunicação com o servidor.')
+          ));
+        })[fn](...args);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+/* =====================================================
+   MENSAGENS
+===================================================== */
+
+function mensagem(texto, tipo = '') {
+  const el = $('msg');
+  el.textContent = texto || '';
+  el.className = 'status' + (tipo ? ' ' + tipo : '');
+}
+
+/* =====================================================
+   PROTEÇÃO DE TEXTO
+===================================================== */
+
+function textoSeguro(valor) {
+  return String(valor ?? '');
+}
+
+/* =====================================================
+   PREENCHIMENTO DOS FILTROS
+===================================================== */
+
+function preencherSelect(elemento, itens, textoInicial) {
+
+  elemento.innerHTML = '';
+
+  const primeira = document.createElement('option');
+  primeira.value = '';
+  primeira.textContent = textoInicial;
+
+  elemento.appendChild(primeira);
+
+  (itens || []).forEach(item => {
+
+    const option = document.createElement('option');
+
+    if (Array.isArray(item)) {
+      option.value = String(item[1] ?? '');
+      option.textContent = String(item[1] ?? '');
+    } else {
+      option.value = String(item);
+      option.textContent = String(item);
+    }
+
+    if (option.value) elemento.appendChild(option);
+
+  });
+}
+
+/* =====================================================
+   INICIALIZAÇÃO E AUTENTICAÇÃO
+===================================================== */
+
+async function init() {
+
+  if (!token) {
+    mensagem(
+      'Acesse primeiro o ADMIN e autentique-se para consultar os indicadores.',
+      'error'
+    );
+    $('apply').disabled = true;
+    return;
+  }
+
+  mensagem('Validando sessão ADMIN...');
+
+  try {
+
+    adminData = await call('apiAdminBootstrap', token);
+
+    if (
+      !adminData ||
+      !Array.isArray(adminData.obras) ||
+      !Array.isArray(adminData.frentes)
+    ) {
+      throw new Error('Não foi possível carregar as configurações do sistema.');
+    }
+
+    preencherSelect($('obra'), adminData.obras, 'Todas');
+    preencherSelect($('trecho'), adminData.frentes, 'Todos');
+
+    mensagem('Sessão ADMIN validada.', 'success');
+
+    await carregarIndicadores();
+
+  } catch (error) {
+
+    mensagem(
+      'Acesso não autorizado ou sessão expirada. Volte ao ADMIN e entre novamente. ' +
+      error.message,
+      'error'
+    );
+
+    $('apply').disabled = true;
+  }
+}
+
+/* =====================================================
+   FILTRO DE TRECHO POR OBRA
+===================================================== */
+
+$('obra').addEventListener('change', () => {
+
+  const obraSelecionada = $('obra').value;
+
+  if (!obraSelecionada) {
+    preencherSelect($('trecho'), adminData.frentes, 'Todos');
+    return;
+  }
+
+  const frentes = adminData.frentes.filter(
+    frente => String(frente[1]) === String(obraSelecionada)
+  );
+
+  preencherSelect($('trecho'), frentes, 'Todos');
+});
+
+/* =====================================================
+   CARREGAR INDICADORES
+===================================================== */
+
+$('apply').addEventListener('click', carregarIndicadores);
+
+async function carregarIndicadores() {
+
+  if (!token || carregando) return;
+
+  const inicio = $('ini').value;
+  const fim = $('fim').value;
+
+  if (inicio && fim && inicio > fim) {
+    mensagem('A data inicial não pode ser posterior à data final.', 'error');
+    return;
+  }
+
+  carregando = true;
+  $('apply').disabled = true;
+
+  mensagem('Atualizando indicadores...');
+
+  const filtros = {
+    inicio: inicio,
+    fim: fim,
+    obra: $('obra').value,
+    trecho: $('trecho').value
+  };
+
+  try {
+
+    const dados = await call(
+      'obterIndicadores',
+      filtros,
+      token
+    );
+
+    if (!dados || typeof dados !== 'object') {
+      throw new Error('O servidor não retornou os indicadores.');
+    }
+
+    atualizarCards(dados);
+    atualizarTabela(dados.records || dados.registros || []);
+    atualizarGraficos(dados);
+
+    mensagem(
+      'Dados atualizados a partir da planilha.',
+      'success'
+    );
+
+  } catch (error) {
+
+    mensagem(
+      'Erro ao consultar indicadores: ' + error.message,
+      'error'
+    );
+
+  } finally {
+
+    carregando = false;
+    $('apply').disabled = false;
+
+  }
+}
+
+/* =====================================================
+   CARDS DE INDICADORES
+===================================================== */
+
+function atualizarCards(dados) {
+
+  $('total').textContent =
+    dados.total ?? dados.totalRegistros ?? 0;
+
+  $('approved').textContent =
+    dados.approved ?? dados.aprovados ?? 0;
+
+  $('denied').textContent =
+    dados.denied ?? dados.recusados ?? 0;
+
+  $('visitors').textContent =
+    dados.visitors ?? dados.visitantes ?? 0;
+
+  $('active').textContent =
+    dados.active ?? dados.colaboradoresAtivos ?? 0;
+
+  // O backend precisa fornecer esse indicador para exibir um valor real.
+  $('pending').textContent =
+    dados.pending ?? dados.pendentes ?? '—';
+}
+
+/* =====================================================
+   TABELA DE REGISTROS
+===================================================== */
+
+function atualizarTabela(registros) {
+
+  const tbody = $('rows');
+  tbody.innerHTML = '';
+
+  $('recordCount').textContent =
+    registros.length + ' registro(s)';
+
+  if (!registros.length) {
+
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+
+    td.colSpan = 9;
+    td.textContent = 'Nenhum registro encontrado para os filtros selecionados.';
+
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+
+    return;
+  }
+
+  registros.forEach(registro => {
+
+    const tr = document.createElement('tr');
+
+    const valores = [
+      registro.data,
+      registro.hora,
+      registro.matricula,
+      registro.nome,
+      registro.obra,
+      registro.trecho,
+      registro.refeicao,
+      registro.status,
+      registro.motivo
+    ];
+
+    valores.forEach(valor => {
+
+      const td = document.createElement('td');
+      td.textContent = textoSeguro(valor);
+
+      tr.appendChild(td);
+
+    });
+
+    tbody.appendChild(tr);
+
+  });
+}
+
+/* =====================================================
+   GRÁFICOS
+===================================================== */
+
+function atualizarGraficos(dados) {
+
+  if (typeof Chart === 'undefined') {
+    mensagem(
+      'Indicadores carregados, mas a biblioteca dos gráficos não foi disponibilizada.',
+      'error'
+    );
+    return;
+  }
+
+  const porRefeicao = dados.byMeal || dados.porRefeicao || {};
+
+  const nomesRefeicoes = Object.keys(porRefeicao);
+  const valoresRefeicoes = Object.values(porRefeicao);
+
+  if (mealChart) {
+    mealChart.destroy();
+    mealChart = null;
+  }
+
+  if (statusChart) {
+    statusChart.destroy();
+    statusChart = null;
+  }
+
+  mealChart = new Chart($('mealChart'), {
+    type: 'bar',
+
+    data: {
+      labels: nomesRefeicoes,
+
+      datasets: [{
+        label: 'Registros',
+        data: valoresRefeicoes,
+        backgroundColor: '#f28c28',
+        borderRadius: 5
+      }]
+    },
+
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            precision: 0
+          }
+        }
+      }
+    }
+  });
+
+  statusChart = new Chart($('statusChart'), {
+    type: 'doughnut',
+
+    data: {
+      labels: ['Aprovados', 'Recusados'],
+
+      datasets: [{
+        data: [
+          Number(dados.approved ?? dados.aprovados ?? 0),
+          Number(dados.denied ?? dados.recusados ?? 0)
+        ],
+
+        backgroundColor: [
+          '#16834a',
+          '#c83c3c'
+        ]
+      }]
+    },
+
+    options: {
+      responsive: true,
+      maintainAspectRatio: true
+    }
+  });
+}
+
+/* =====================================================
+   LIMPAR FILTROS
+===================================================== */
+
+$('clear').addEventListener('click', () => {
+
+  $('ini').value = '';
+  $('fim').value = '';
+  $('obra').value = '';
+
+  preencherSelect(
+    $('trecho'),
+    adminData ? adminData.frentes : [],
+    'Todos'
+  );
+
+  carregarIndicadores();
+});
+
+/* =====================================================
+   INICIAR
+===================================================== */
+
+document.addEventListener('DOMContentLoaded', init);
+
+</script>
+
+</body>
+</html>
