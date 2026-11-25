@@ -4,16 +4,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#10243a">
+  <meta name="theme-color" content="#F28C28">
   <title>CS | Painel Operacional</title>
 
   <script src="https://unpkg.com/html5-qrcode"></script>
 
   <style>
     :root {
-      --azul: #10243a;
-      --azul2: #193b5c;
-      --azul3: #24649a;
+      --azul: #F28C28;
+      --azul2: #E57B16;
+      --azul3: #F28C28;
       --fundo: #f1f4f8;
       --branco: #fff;
       --texto: #243447;
@@ -22,6 +22,7 @@
       --vermelho: #c0392b;
       --amarelo: #b7791f;
       --borda: #dce3eb;
+      --laranja-claro: #fff1e2;
     }
 
     * { box-sizing: border-box; }
@@ -52,7 +53,7 @@
 
     .submarca {
       font-size: 12px;
-      color: #c6d6e6;
+      color: #fff2e5;
       margin-top: 4px;
     }
 
@@ -60,7 +61,8 @@
       font-size: 12px;
       padding: 8px 12px;
       border-radius: 20px;
-      background: #344b62;
+      background: #c96b12;
+      color: white;
     }
 
     main {
@@ -81,7 +83,7 @@
     h2 {
       font-size: 17px;
       margin: 0 0 15px;
-      color: var(--azul);
+      color: var(--azul2);
     }
 
     .grade {
@@ -116,7 +118,7 @@
     }
 
     input:focus, select:focus {
-      outline: 2px solid #a9c9e8;
+      outline: 2px solid #ffd0a0;
       border-color: var(--azul3);
     }
 
@@ -140,9 +142,13 @@
       background: var(--azul3);
     }
 
+    .primario:hover:not(:disabled) {
+      background: #dc7617;
+    }
+
     .escuro {
       color: white;
-      background: var(--azul);
+      background: #c96b12;
     }
 
     .neutro {
@@ -174,12 +180,13 @@
       border: 1px solid var(--borda);
       border-radius: 10px;
       padding: 15px;
+      border-top: 3px solid var(--azul);
     }
 
     .indicador strong {
       display: block;
       font-size: 25px;
-      color: var(--azul);
+      color: var(--azul2);
     }
 
     .indicador span {
@@ -251,7 +258,7 @@
     }
 
     .resultado strong {
-      color: var(--azul);
+      color: var(--azul2);
     }
 
     .rodape {
@@ -439,7 +446,6 @@
 
 </main>
 
-<!-- Comunicação com o Apps Script -->
 <iframe
   id="bridgeFrame"
   title="Comunicação com o sistema"
@@ -449,10 +455,6 @@
 
 <script>
 "use strict";
-
-/* =====================================================
-   CONFIGURAÇÃO
-===================================================== */
 
 const CONFIG = {
   chaveTablet: "CS_TABLET_DEVICE_ID",
@@ -477,10 +479,6 @@ let contadores = {
 
 const chamadasPendentes = new Map();
 
-/* =====================================================
-   COMUNICAÇÃO COM O BRIDGE
-===================================================== */
-
 const bridgeFrame = document.getElementById("bridgeFrame");
 
 bridgeFrame.addEventListener("load", () => {
@@ -491,6 +489,13 @@ bridgeFrame.addEventListener("load", () => {
 
 window.addEventListener("message", function(event) {
   if (event.source !== bridgeFrame.contentWindow) return;
+
+  const origemValida =
+    event.origin === "https://script.google.com" ||
+    event.origin === "https://script.googleusercontent.com" ||
+    event.origin.endsWith(".script.googleusercontent.com");
+
+  if (!origemValida) return;
 
   const msg = event.data;
 
@@ -544,10 +549,6 @@ function chamarBackend(metodo, args = []) {
   });
 }
 
-/* =====================================================
-   MENSAGENS E INTERFACE
-===================================================== */
-
 function mensagem(id, texto, tipo = "ok") {
   const el = document.getElementById(id);
   el.className = "mensagem " + tipo;
@@ -590,10 +591,6 @@ function limparTablet() {
 
   mensagem("msgConexao", "Informe o código do tablet para conectar novamente.", "aviso");
 }
-
-/* =====================================================
-   IDENTIFICAÇÃO E CONEXÃO DO TABLET
-===================================================== */
 
 function obterIdTablet() {
   return document.getElementById("deviceId").value.trim();
@@ -638,10 +635,6 @@ async function conectarTablet() {
     botao.textContent = "Conectar tablet";
   }
 }
-
-/* =====================================================
-   PREENCHIMENTO DA CONFIGURAÇÃO
-===================================================== */
 
 function preencherDadosOperacionais(dados) {
   const tablet = dados.tablet || {};
@@ -690,10 +683,6 @@ function preencherSelect(id, lista, textoInicial) {
   });
 }
 
-/* =====================================================
-   LOCALIZAÇÃO DO COLABORADOR
-===================================================== */
-
 function normalizarLista(resultado) {
   if (Array.isArray(resultado)) return resultado;
 
@@ -730,10 +719,6 @@ async function localizarColaborador(codigo) {
 
   throw new Error("Colaborador não encontrado ou não cadastrado.");
 }
-
-/* =====================================================
-   REGISTRO DA PASSAGEM
-===================================================== */
 
 async function buscarERegistrar() {
   if (processando) return;
@@ -833,10 +818,6 @@ function mostrarUltimoRegistro(nome, codigo, status) {
     nome + " | Matrícula: " + codigo + " | " + status;
 }
 
-/* =====================================================
-   LEITURA DE QR CODE
-===================================================== */
-
 async function iniciarCamera() {
   if (!tabletConectado) {
     mensagem("msgRegistro", "Conecte o tablet antes de iniciar a leitura.", "erro");
@@ -929,10 +910,6 @@ async function pararCamera() {
     '<div class="leitor-vazio">Câmera desligada. Pressione INICIAR LEITURA para continuar.</div>';
 }
 
-/* =====================================================
-   SEGURANÇA DE EXIBIÇÃO
-===================================================== */
-
 function escaparHTML(valor) {
   return String(valor == null ? "" : valor)
     .replace(/&/g, "&amp;")
@@ -941,10 +918,6 @@ function escaparHTML(valor) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
-
-/* =====================================================
-   INICIALIZAÇÃO
-===================================================== */
 
 window.addEventListener("load", function() {
   const salvo = localStorage.getItem(CONFIG.chaveTablet);
