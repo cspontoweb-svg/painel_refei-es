@@ -1,0 +1,1039 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#F28C28">
+  <title>CS | Painel Operacional</title>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    :root {
+      --azul: #F28C28;
+      --azul2: #E57B16;
+      --azul3: #F28C28;
+      --fundo: #f1f4f8;
+      --branco: #fff;
+      --texto: #243447;
+      --cinza: #64748b;
+      --verde: #16834a;
+      --vermelho: #c0392b;
+      --amarelo: #b7791f;
+      --borda: #dce3eb;
+      --laranja-claro: #fff1e2;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--fundo);
+      color: var(--texto);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    header {
+      background: var(--azul);
+      color: white;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .marca {
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: .5px;
+    }
+
+    .submarca {
+      font-size: 12px;
+      color: #fff2e5;
+      margin-top: 4px;
+    }
+
+    .status-topo {
+      font-size: 12px;
+      padding: 8px 12px;
+      border-radius: 20px;
+      background: #c96b12;
+      color: white;
+    }
+
+    main {
+      width: min(1100px, 100%);
+      margin: auto;
+      padding: 20px;
+    }
+
+    .painel {
+      background: white;
+      border: 1px solid var(--borda);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 8px rgba(15, 35, 55, .04);
+    }
+
+    h2 {
+      font-size: 17px;
+      margin: 0 0 15px;
+      color: var(--azul2);
+    }
+
+    .grade {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .campo {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .campo.largo { grid-column: 1 / -1; }
+
+    label {
+      font-size: 12px;
+      font-weight: bold;
+      color: #526274;
+    }
+
+    input, select {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--borda);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 15px;
+      background: white;
+      color: var(--texto);
+    }
+
+    input:focus, select:focus {
+      outline: 2px solid #ffd0a0;
+      border-color: var(--azul3);
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 12px 16px;
+      min-height: 44px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    button:disabled {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
+    .primario {
+      color: white;
+      background: var(--azul3);
+    }
+
+    .primario:hover:not(:disabled) {
+      background: #dc7617;
+    }
+
+    .escuro {
+      color: white;
+      background: #c96b12;
+    }
+
+    .neutro {
+      color: var(--texto);
+      background: #e8edf3;
+    }
+
+    .perigo {
+      color: white;
+      background: var(--vermelho);
+    }
+
+    .botoes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 12px;
+    }
+
+    .indicadores {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .indicador {
+      background: white;
+      border: 1px solid var(--borda);
+      border-radius: 10px;
+      padding: 15px;
+      border-top: 3px solid var(--azul);
+    }
+
+    .indicador strong {
+      display: block;
+      font-size: 25px;
+      color: var(--azul2);
+    }
+
+    .indicador span {
+      display: block;
+      color: var(--cinza);
+      font-size: 11px;
+      margin-top: 5px;
+    }
+
+    #leitor {
+      width: 100%;
+      max-width: 480px;
+      margin: 12px auto;
+      overflow: hidden;
+      border-radius: 10px;
+    }
+
+    .leitor-vazio {
+      background: #edf2f7;
+      min-height: 100px;
+      border: 1px dashed #aab8c7;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 18px;
+      color: var(--cinza);
+      font-size: 13px;
+    }
+
+    .mensagem {
+      padding: 13px;
+      border-radius: 8px;
+      margin-top: 12px;
+      font-size: 13px;
+      display: none;
+      line-height: 1.5;
+    }
+
+    .mensagem.ok {
+      display: block;
+      color: #11633a;
+      background: #e6f5ec;
+      border: 1px solid #b9e2c8;
+    }
+
+    .mensagem.erro {
+      display: block;
+      color: #9d2d24;
+      background: #fcebea;
+      border: 1px solid #efc1bd;
+    }
+
+    .mensagem.aviso {
+      display: block;
+      color: #855b13;
+      background: #fff5dc;
+      border: 1px solid #f0d99e;
+    }
+
+    .resultado {
+      background: #f7f9fc;
+      border: 1px solid var(--borda);
+      border-radius: 9px;
+      padding: 13px;
+      margin-top: 12px;
+      display: none;
+    }
+
+    .resultado strong {
+      color: var(--azul2);
+    }
+
+    .rodape {
+      text-align: center;
+      color: #8090a0;
+      font-size: 11px;
+      padding: 15px;
+    }
+
+    .linha {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .texto-pequeno {
+      font-size: 12px;
+      color: var(--cinza);
+      line-height: 1.5;
+    }
+
+    @media (max-width: 600px) {
+      main { padding: 12px; }
+      .grade { grid-template-columns: 1fr; }
+      .indicadores { grid-template-columns: repeat(2, 1fr); }
+      header { padding: 15px; }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div>
+    <div class="marca">CS | PAINEL OPERACIONAL</div>
+    <div class="submarca">Controle de refeições e registro de passagens</div>
+  </div>
+  <div class="status-topo" id="statusSistema">Conectando...</div>
+</header>
+
+<main>
+
+  <section class="painel">
+    <div class="linha">
+      <h2>Identificação do tablet</h2>
+      <span class="texto-pequeno" id="statusTablet">Não identificado</span>
+    </div>
+
+    <div class="grade">
+      <div class="campo largo">
+        <label for="deviceId">Código de identificação do tablet</label>
+        <input id="deviceId" type="text"
+          placeholder="Informe o código gerado no cadastro administrativo">
+      </div>
+    </div>
+
+    <div class="botoes">
+      <button class="primario" id="btnConectar" onclick="conectarTablet()">
+        Conectar tablet
+      </button>
+      <button class="neutro" onclick="limparTablet()">
+        Alterar identificação
+      </button>
+    </div>
+
+    <div id="msgConexao" class="mensagem"></div>
+  </section>
+
+  <section class="indicadores">
+    <div class="indicador">
+      <strong id="kpiTotal">0</strong>
+      <span>Registros nesta sessão</span>
+    </div>
+    <div class="indicador">
+      <strong id="kpiAprovados">0</strong>
+      <span>Registros aprovados</span>
+    </div>
+    <div class="indicador">
+      <strong id="kpiNegados">0</strong>
+      <span>Registros recusados</span>
+    </div>
+  </section>
+
+  <section class="painel">
+    <h2>Dados operacionais</h2>
+
+    <div class="grade">
+      <div class="campo">
+        <label>Tablet</label>
+        <input id="nomeTablet" readonly placeholder="Aguardando conexão">
+      </div>
+
+      <div class="campo">
+        <label>Obra</label>
+        <input id="nomeObra" readonly placeholder="Aguardando conexão">
+      </div>
+
+      <div class="campo">
+        <label>Frente / Trecho</label>
+        <input id="nomeFrente" readonly placeholder="Aguardando conexão">
+      </div>
+
+      <div class="campo">
+        <label for="refeicao">Refeição</label>
+        <select id="refeicao">
+          <option value="">Selecione a refeição</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="turno">Turno</label>
+        <select id="turno">
+          <option value="">Selecione o turno</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="operador">Operador responsável</label>
+        <input id="operador" type="text" placeholder="Nome do operador">
+      </div>
+    </div>
+  </section>
+
+  <section class="painel">
+    <h2>Leitura de QR Code</h2>
+
+    <div id="leitor" class="leitor-vazio">
+      A câmera será ativada ao pressionar INICIAR LEITURA.
+    </div>
+
+    <div class="botoes">
+      <button class="primario" id="btnCamera" onclick="iniciarCamera()">
+        Iniciar leitura
+      </button>
+      <button class="neutro" id="btnAlternarCamera" onclick="alternarCamera()" disabled>
+        Usar câmera frontal
+      </button>
+      <button class="neutro" onclick="pararCamera()">
+        Parar câmera
+      </button>
+    </div>
+
+    <div class="texto-pequeno">
+      A leitura inicia após a autorização do tablet e permanece ativa para
+      leituras sucessivas. Use o botão para alternar entre câmera traseira e frontal.
+    </div>
+  </section>
+
+  <section class="painel">
+    <h2>Registro manual</h2>
+
+    <div class="campo">
+      <label for="matricula">Matrícula / Código do colaborador</label>
+      <input id="matricula" type="text"
+        placeholder="Digite ou leia o código do crachá"
+        autocomplete="off"
+        onkeydown="if(event.key === 'Enter') buscarERegistrar()">
+    </div>
+
+    <div class="botoes">
+      <button class="primario" id="btnRegistrar" onclick="buscarERegistrar()">
+        Registrar passagem
+      </button>
+      <button class="neutro" onclick="limparCampo()">
+        Limpar
+      </button>
+    </div>
+
+    <div id="msgRegistro" class="mensagem"></div>
+    <div id="resultadoColaborador" class="resultado"></div>
+  </section>
+
+  <section class="painel">
+    <div class="linha">
+      <h2>Último registro</h2>
+      <span class="texto-pequeno" id="horaUltimoRegistro">--</span>
+    </div>
+    <div id="ultimoRegistro" class="texto-pequeno">
+      Nenhum registro realizado nesta sessão.
+    </div>
+  </section>
+
+  <div class="rodape">
+    CS | Painel Operacional — Sistema de controle
+  </div>
+
+</main>
+
+<iframe
+  id="bridgeFrame"
+  title="Comunicação com o sistema"
+  src="https://script.google.com/macros/s/AKfycbw3qP8yAay_Hc5Y6ZZ8LJh-fgNpSXbiyJTJqXaOQ7OYiC36rH2yNm6WDVYrGWpU5JOXSA/exec?page=bridge"
+  style="display:none"
+></iframe>
+
+<script>
+"use strict";
+
+const CONFIG = {
+  chaveTablet: "CS_TABLET_DEVICE_ID",
+  intervaloAntiduplicidade: 4000,
+  timeoutBridge: 30000
+};
+
+let bridgePronto = false;
+let tabletConectado = false;
+let scanner = null;
+let cameraAtiva = false;
+let camerasDisponiveis = [];
+let cameraSelecionadaId = null;
+let usandoCameraFrontal = false;
+let wakeLock = null;
+let processando = false;
+let ultimoCodigo = "";
+let ultimaLeituraEm = 0;
+let colaboradorAtual = null;
+
+let contadores = {
+  total: 0,
+  aprovados: 0,
+  negados: 0
+};
+
+const chamadasPendentes = new Map();
+
+const bridgeFrame = document.getElementById("bridgeFrame");
+
+bridgeFrame.addEventListener("load", () => {
+  bridgePronto = true;
+  document.getElementById("statusSistema").textContent =
+    "Comunicação disponível";
+});
+
+window.addEventListener("message", function(event) {
+  if (event.source !== bridgeFrame.contentWindow) return;
+
+  const origemValida =
+    event.origin === "https://script.google.com" ||
+    event.origin === "https://script.googleusercontent.com" ||
+    event.origin.endsWith(".script.googleusercontent.com");
+
+  if (!origemValida) return;
+
+  const msg = event.data;
+
+  if (!msg || msg.channel !== "CS_BRIDGE_RESULT") return;
+  if (typeof msg.id !== "string") return;
+
+  const pendente = chamadasPendentes.get(msg.id);
+  if (!pendente) return;
+
+  clearTimeout(pendente.timeout);
+  chamadasPendentes.delete(msg.id);
+
+  if (msg.ok) {
+    pendente.resolve(msg.data);
+  } else {
+    pendente.reject(new Error(
+      msg.data && msg.data.message
+        ? msg.data.message
+        : "Falha na comunicação com o servidor."
+    ));
+  }
+});
+
+function chamarBackend(metodo, args = []) {
+  return new Promise((resolve, reject) => {
+    if (!bridgePronto || !bridgeFrame.contentWindow) {
+      reject(new Error("Comunicação ainda não disponível. Aguarde e tente novamente."));
+      return;
+    }
+
+    const id = "CS_" + Date.now() + "_" +
+      Math.random().toString(36).slice(2);
+
+    const timeout = setTimeout(() => {
+      chamadasPendentes.delete(id);
+      reject(new Error("Tempo de resposta excedido. Verifique a conexão."));
+    }, CONFIG.timeoutBridge);
+
+    chamadasPendentes.set(id, {
+      resolve,
+      reject,
+      timeout
+    });
+
+    bridgeFrame.contentWindow.postMessage({
+      channel: "CS_BRIDGE",
+      id,
+      method: metodo,
+      args
+    }, "*");
+  });
+}
+
+function mensagem(id, texto, tipo = "ok") {
+  const el = document.getElementById(id);
+  el.className = "mensagem " + tipo;
+  el.textContent = texto;
+}
+
+function limparMensagem(id) {
+  const el = document.getElementById(id);
+  el.className = "mensagem";
+  el.textContent = "";
+}
+
+function atualizarIndicadores() {
+  document.getElementById("kpiTotal").textContent = contadores.total;
+  document.getElementById("kpiAprovados").textContent = contadores.aprovados;
+  document.getElementById("kpiNegados").textContent = contadores.negados;
+}
+
+function limparCampo() {
+  document.getElementById("matricula").value = "";
+  document.getElementById("resultadoColaborador").style.display = "none";
+  colaboradorAtual = null;
+  limparMensagem("msgRegistro");
+  document.getElementById("matricula").focus();
+}
+
+function limparTablet() {
+  if (cameraAtiva) pararCamera();
+
+  tabletConectado = false;
+  localStorage.removeItem(CONFIG.chaveTablet);
+
+  document.getElementById("deviceId").value = "";
+  document.getElementById("nomeTablet").value = "";
+  document.getElementById("nomeObra").value = "";
+  document.getElementById("nomeFrente").value = "";
+
+  document.getElementById("statusTablet").textContent =
+    "Não identificado";
+
+  mensagem("msgConexao", "Informe o código do tablet para conectar novamente.", "aviso");
+}
+
+function obterIdTablet() {
+  return document.getElementById("deviceId").value.trim();
+}
+
+async function conectarTablet() {
+  const deviceId = obterIdTablet();
+
+  if (!deviceId) {
+    mensagem("msgConexao", "Informe o código de identificação do tablet.", "erro");
+    return;
+  }
+
+  const botao = document.getElementById("btnConectar");
+  botao.disabled = true;
+  botao.textContent = "Conectando...";
+
+  try {
+    const dados = await chamarBackend("apiOperadorBootstrap", [deviceId]);
+
+    if (!dados || dados.erro) {
+      throw new Error(dados && dados.erro
+        ? dados.erro
+        : "Tablet não autorizado ou não encontrado.");
+    }
+
+    localStorage.setItem(CONFIG.chaveTablet, deviceId);
+    preencherDadosOperacionais(dados);
+
+    tabletConectado = true;
+
+    document.getElementById("statusSistema").textContent = "Sistema conectado";
+    document.getElementById("statusTablet").textContent = "Tablet autorizado";
+
+    mensagem("msgConexao", "Tablet conectado e configuração carregada.", "ok");
+    // A câmera é iniciada automaticamente assim que o tablet autorizado conecta.
+    setTimeout(() => iniciarCamera(), 250);
+
+  } catch (erro) {
+    tabletConectado = false;
+    mensagem("msgConexao", erro.message, "erro");
+  } finally {
+    botao.disabled = false;
+    botao.textContent = "Conectar tablet";
+  }
+}
+
+function preencherDadosOperacionais(dados) {
+  const tablet = dados.tablet || {};
+  const obra = dados.obra || {};
+  const frente = dados.frente || {};
+
+  document.getElementById("nomeTablet").value =
+    tablet.nome || tablet.nomeTablet || tablet.deviceName || "";
+
+  document.getElementById("nomeObra").value =
+    obra.nome || obra.obra || dados.nomeObra || "";
+
+  document.getElementById("nomeFrente").value =
+    frente.nome || frente.nomeFrente || frente.trecho || dados.nomeFrente || "";
+
+  preencherSelect("refeicao", dados.refeicoes || [], "Selecione a refeição");
+  preencherSelect("turno", dados.turnos || [], "Selecione o turno");
+}
+
+function preencherSelect(id, lista, textoInicial) {
+  const select = document.getElementById(id);
+  select.innerHTML = "";
+
+  const inicial = document.createElement("option");
+  inicial.value = "";
+  inicial.textContent = textoInicial;
+  select.appendChild(inicial);
+
+  lista.forEach(item => {
+    const option = document.createElement("option");
+
+    if (typeof item === "string") {
+      option.value = item;
+      option.textContent = item;
+    } else {
+      option.value =
+        item.id || item.codigo || item.nome || item.refeicao ||
+        item.turno || item.valor || "";
+
+      option.textContent =
+        item.nome || item.descricao || item.refeicao ||
+        item.turno || item.valor || option.value;
+    }
+
+    if (option.value) select.appendChild(option);
+  });
+}
+
+function normalizarLista(resultado) {
+  if (Array.isArray(resultado)) return resultado;
+
+  if (resultado && Array.isArray(resultado.colaboradores)) {
+    return resultado.colaboradores;
+  }
+
+  if (resultado && Array.isArray(resultado.dados)) {
+    return resultado.dados;
+  }
+
+  return [];
+}
+
+async function localizarColaborador(codigo) {
+  const resultado = await chamarBackend("buscarColaboradores", [codigo]);
+  const lista = normalizarLista(resultado);
+
+  const encontrado = lista.find(item => {
+    const matricula = String(
+      item.matricula || item.codigo || item.id || ""
+    ).trim();
+
+    return matricula.toLowerCase() === codigo.toLowerCase();
+  });
+
+  if (encontrado) return encontrado;
+
+  if (lista.length === 1) return lista[0];
+
+  if (lista.length > 1) {
+    throw new Error("Mais de um colaborador encontrado. Informe a matrícula exata.");
+  }
+
+  throw new Error("Colaborador não encontrado ou não cadastrado.");
+}
+
+async function buscarERegistrar() {
+  if (processando) return;
+
+  if (!tabletConectado) {
+    mensagem("msgRegistro", "Conecte o tablet antes de registrar passagens.", "erro");
+    return;
+  }
+
+  const codigo = document.getElementById("matricula").value.trim();
+  const refeicao = document.getElementById("refeicao").value;
+  const turno = document.getElementById("turno").value;
+
+  if (!codigo) {
+    mensagem("msgRegistro", "Informe ou leia a matrícula do colaborador.", "erro");
+    return;
+  }
+
+  if (!refeicao || !turno) {
+    mensagem("msgRegistro", "Selecione a refeição e o turno.", "erro");
+    return;
+  }
+
+  await registrarPorCodigo(codigo);
+}
+
+async function registrarPorCodigo(codigo) {
+  if (processando) return;
+
+  processando = true;
+  document.getElementById("btnRegistrar").disabled = true;
+
+  try {
+    limparMensagem("msgRegistro");
+
+    const colaborador = await localizarColaborador(codigo);
+    colaboradorAtual = colaborador;
+
+    const payload = {
+      deviceId: obterIdTablet(),
+      matricula: String(
+        colaborador.matricula || colaborador.codigo || codigo
+      ),
+      refeicao: document.getElementById("refeicao").value,
+      turno: document.getElementById("turno").value,
+      operador: document.getElementById("operador").value.trim()
+    };
+
+    const resultado = await chamarBackend("registrarPassagem", [payload]);
+
+    if (resultado && resultado.ok === false) {
+      throw new Error(resultado.mensagem || resultado.erro || "Registro não autorizado.");
+    }
+
+    contadores.total++;
+    contadores.aprovados++;
+    atualizarIndicadores();
+
+    const nome = colaborador.nome || colaborador.nomeCompleto || codigo;
+
+    mensagem(
+      "msgRegistro",
+      "Passagem registrada com sucesso para " + nome + ".",
+      "ok"
+    );
+
+    mostrarUltimoRegistro(nome, codigo, "APROVADO");
+
+    document.getElementById("resultadoColaborador").style.display = "block";
+    document.getElementById("resultadoColaborador").innerHTML =
+      "<strong>Colaborador:</strong> " + escaparHTML(nome) +
+      "<br><strong>Matrícula:</strong> " + escaparHTML(codigo);
+
+    document.getElementById("matricula").value = "";
+
+  } catch (erro) {
+    contadores.total++;
+    contadores.negados++;
+    atualizarIndicadores();
+
+    mensagem("msgRegistro", erro.message, "erro");
+    mostrarUltimoRegistro(codigo, codigo, "RECUSADO");
+  } finally {
+    processando = false;
+    document.getElementById("btnRegistrar").disabled = false;
+    document.getElementById("matricula").focus();
+  }
+}
+
+function mostrarUltimoRegistro(nome, codigo, status) {
+  const agora = new Date();
+
+  document.getElementById("horaUltimoRegistro").textContent =
+    agora.toLocaleTimeString("pt-BR");
+
+  document.getElementById("ultimoRegistro").textContent =
+    nome + " | Matrícula: " + codigo + " | " + status;
+}
+
+async function solicitarTelaAtiva() {
+  try {
+    if ("wakeLock" in navigator && !wakeLock) {
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => { wakeLock = null; });
+    }
+  } catch (erro) {
+    console.warn("Bloqueio de suspensão não disponível:", erro);
+  }
+}
+
+async function carregarCameras() {
+  // Solicita permissão antes de enumerar para que o navegador revele os nomes
+  // das câmeras (frontal/traseira) quando o dispositivo permitir.
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    const fluxoPermissao = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    fluxoPermissao.getTracks().forEach(track => track.stop());
+  }
+  camerasDisponiveis = await Html5Qrcode.getCameras();
+  if (!camerasDisponiveis || camerasDisponiveis.length === 0) {
+    throw new Error("Nenhuma câmera foi encontrada neste dispositivo.");
+  }
+
+  // Prioriza a traseira; se os nomes não forem identificáveis, usa a última câmera.
+  let indiceTraseira = camerasDisponiveis.findIndex(c =>
+    /back|rear|environment|traseira|trás/i.test(c.label || "")
+  );
+  if (indiceTraseira < 0) indiceTraseira = camerasDisponiveis.length - 1;
+  cameraSelecionadaId = camerasDisponiveis[indiceTraseira].id;
+  usandoCameraFrontal = false;
+}
+
+async function iniciarCamera() {
+  if (!tabletConectado) {
+    mensagem("msgRegistro", "Conecte um tablet autorizado antes de iniciar a leitura.", "erro");
+    return;
+  }
+  if (cameraAtiva) return;
+  if (typeof Html5Qrcode === "undefined") {
+    mensagem("msgRegistro", "Não foi possível carregar o leitor de QR Code. Verifique a internet.", "erro");
+    return;
+  }
+
+  try {
+    if (!camerasDisponiveis.length) await carregarCameras();
+    scanner = new Html5Qrcode("leitor", { verbose: false });
+
+    await scanner.start(
+      cameraSelecionadaId,
+      {
+        fps: 12,
+        qrbox: (viewWidth, viewHeight) => {
+          const largura = Math.min(300, Math.floor(viewWidth * 0.82));
+          const altura = Math.min(220, Math.floor(viewHeight * 0.62));
+          return { width: largura, height: altura };
+        },
+        aspectRatio: 1.333,
+        rememberLastUsedCamera: true
+      },
+      codigoLido => processarLeitura(codigoLido),
+      () => {}
+    );
+
+    cameraAtiva = true;
+    document.getElementById("btnCamera").textContent = "Leitura ativa";
+    document.getElementById("btnAlternarCamera").disabled = camerasDisponiveis.length < 2;
+    atualizarBotaoCamera();
+    await solicitarTelaAtiva();
+    mensagem("msgRegistro", "Câmera ativa. Aguardando QR Code...", "ok");
+  } catch (erro) {
+    if (scanner) {
+      try { await scanner.clear(); } catch (_) {}
+    }
+    scanner = null;
+    cameraAtiva = false;
+    mensagem(
+      "msgRegistro",
+      "Não foi possível abrir a câmera: " + (erro.message || erro) +
+      ". Verifique a permissão de câmera e se o site está aberto em HTTPS.",
+      "erro"
+    );
+  }
+}
+
+function atualizarBotaoCamera() {
+  const botao = document.getElementById("btnAlternarCamera");
+  botao.textContent = usandoCameraFrontal ? "Usar câmera traseira" : "Usar câmera frontal";
+}
+
+async function alternarCamera() {
+  if (!camerasDisponiveis.length || camerasDisponiveis.length < 2) {
+    mensagem("msgRegistro", "Este dispositivo não disponibilizou duas câmeras.", "aviso");
+    return;
+  }
+
+  const cameraAtual = cameraSelecionadaId;
+  const outra = camerasDisponiveis.find(c => c.id !== cameraAtual);
+  if (!outra) return;
+
+  cameraSelecionadaId = outra.id;
+  usandoCameraFrontal = !usandoCameraFrontal;
+  if (cameraAtiva) {
+    try {
+      await scanner.stop();
+      await scanner.clear();
+    } catch (erro) {
+      console.warn("Falha ao trocar câmera:", erro);
+    }
+    scanner = null;
+    cameraAtiva = false;
+    atualizarBotaoCamera();
+    await iniciarCamera();
+  }
+}
+
+async function processarLeitura(texto) {
+  const codigo = String(texto || "").trim();
+
+  if (!codigo || processando) return;
+
+  const agora = Date.now();
+
+  if (
+    codigo === ultimoCodigo &&
+    agora - ultimaLeituraEm < CONFIG.intervaloAntiduplicidade
+  ) {
+    return;
+  }
+
+  ultimoCodigo = codigo;
+  ultimaLeituraEm = agora;
+
+  document.getElementById("matricula").value = codigo;
+
+  if (!document.getElementById("refeicao").value ||
+      !document.getElementById("turno").value) {
+    mensagem(
+      "msgRegistro",
+      "QR Code lido. Selecione a refeição e o turno antes de registrar.",
+      "aviso"
+    );
+    return;
+  }
+
+  await registrarPorCodigo(codigo);
+}
+
+async function pararCamera() {
+  if (!scanner || !cameraAtiva) return;
+
+  try {
+    await scanner.stop();
+    await scanner.clear();
+  } catch (erro) {
+    console.warn("Não foi possível encerrar a câmera:", erro);
+  }
+
+  scanner = null;
+  cameraAtiva = false;
+  document.getElementById("btnAlternarCamera").disabled = true;
+  if (wakeLock) { try { await wakeLock.release(); } catch (_) {} wakeLock = null; }
+
+  document.getElementById("btnCamera").textContent = "Iniciar leitura";
+  document.getElementById("leitor").innerHTML =
+    '<div class="leitor-vazio">Câmera desligada. Pressione INICIAR LEITURA para continuar.</div>';
+}
+
+function escaparHTML(valor) {
+  return String(valor == null ? "" : valor)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+window.addEventListener("load", function() {
+  const salvo = localStorage.getItem(CONFIG.chaveTablet);
+
+  if (salvo) {
+    document.getElementById("deviceId").value = salvo;
+  }
+
+  document.getElementById("statusSistema").textContent =
+    "Aguardando comunicação";
+
+  setTimeout(() => {
+    if (bridgePronto && salvo) {
+      conectarTablet();
+    } else if (!bridgePronto) {
+      document.getElementById("statusSistema").textContent =
+        "Aguardando servidor";
+    }
+  }, 1200);
+});
+
+document.addEventListener("visibilitychange", async function() {
+  if (document.visibilityState === "visible" && cameraAtiva) {
+    await solicitarTelaAtiva();
+  }
+});
+
+window.addEventListener("beforeunload", function() {
+  if (scanner && cameraAtiva) scanner.stop().catch(() => {});
+  if (wakeLock) wakeLock.release().catch(() => {});
+});
+</script>
+
+</body>
+</html>
